@@ -1,16 +1,28 @@
 import React, {useState} from 'react'
-import renderToStaticXML from 'react-xml'
+import {makeStyles} from '@material-ui/core/styles'
 import {Grid, Divider, Typography, Button} from '@material-ui/core'
+import Select from 'react-select'
 
-import parseXML from '../utils/buildXML'
 import productsData from '../data/products.json'
-import {Card, TextField} from '../components'
+import {Card, TextField, Notification, LinearProgress} from '../components'
+
+const useStyles = makeStyles({
+  root: {
+    paddingBottom: 300,
+    '&:last-child': {
+      paddingBottom: 300
+    }
+  }
+})
 
 function Home() {
+  const classes = useStyles()
   const initialData = [{sku: '', description: '', unitOfMeasure: ''}]
-
+  const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState(initialData)
-  const [values, setValues] = React.useState({
+  const [snackbar, setSnackbar] = useState({status: false})
+  const [values, setValues] = useState({
+    inputSku: '',
     name: '',
     email: '',
     phone: '',
@@ -37,8 +49,9 @@ function Home() {
     carrierContactEmail: 'esmiranda@falabella.cl'
   })
 
-  const handleClick = event => {
+  const handleClick = async event => {
     event.preventDefault()
+    setLoading(true)
     const outputData = {
       values,
       products: products.reduce((acc, next) => {
@@ -50,21 +63,12 @@ function Home() {
       }, [])
     }
 
-    const today = new Date()
-    const xml = renderToStaticXML(parseXML(outputData))
-    const element = document.createElement('a')
-    element.setAttribute(
-      'href',
-      `data:${'application/xml'};charset=utf-8,${encodeURIComponent(xml)}`
-    )
-    element.setAttribute(
-      'download',
-      `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`
-    )
-    element.style.display = 'none'
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
+    await fetch('https://fn-sodimac-uploadsftp.azurewebsites.net/api/ParseHandler', {
+      method: 'POST',
+      body: JSON.stringify(outputData)
+    })
+    setLoading(false)
+    setSnackbar({status: true, message: 'Archivo cargado', type: 'success'})
   }
 
   const handleChange = event => {
@@ -78,15 +82,12 @@ function Home() {
     setProducts(prevState => [...prevState, ...initialData])
   }
 
-  const handleChangeProduct = (event, index) => {
-    const name = event.target.name
-    const value = event.target.value
+  const handleChangeProduct = (product, index) => {
     setProducts(prevState => {
       const newState = [...prevState]
       newState[index] = {
         ...newState[index],
-        ...productsData[value],
-        [name]: value
+        ...product
       }
       return newState
     })
@@ -105,18 +106,22 @@ function Home() {
     })
   }
 
-  const mapInputs = products => {
-    return products.map((product, index) => {
+  const handleCloseSnackbar = () => {
+    setSnackbar({...snackbar, status: false})
+  }
+
+  const mapInputs = () => {
+    return products.map((data, index) => {
       return (
-        <Grid container key={index} spacing={3}>
+        <Grid key={index} container spacing={3}>
           <Grid item md={6}>
-            <TextField
-              id="inputSku"
-              className="input-width"
-              name="inputSku"
-              label="Sku del producto"
-              onChange={e => handleChangeProduct(e, index)}
-            />
+            <div className="mt-3">
+              <Select
+                options={productsData}
+                onChange={product => handleChangeProduct(product, index)}
+                name={values.inputSku}
+              />
+            </div>
           </Grid>
           <Grid item md={6}>
             <TextField
@@ -132,211 +137,233 @@ function Home() {
     })
   }
 
+  console.log(loading)
   return (
-    <Grid container item xs={12} sm>
-      <Card>
-        <div className="text-center">
-          <Typography gutterBottom variant="h4">
-            Generador XML
-          </Typography>
-        </div>
-        <form className="mt-3">
-          <Typography variant="subtitle2">Datos:</Typography>
-          <TextField id="name" label="Nombre" name="name" onChange={handleChange} />
-          <TextField id="email" label="Email" name="email" onChange={handleChange} disabled={true} />
-          <TextField id="phone" label="Teléfono" name="phone" onChange={handleChange} disabled={true} />
-          <div className="mt-3">
-            <Divider variant="middle" />
+    <>
+      {loading && <LinearProgress />}
+      <Grid container item xs={12} sm>
+        <Card className={classes.root}>
+          <div className="text-center">
+            <Typography gutterBottom variant="h4">
+              Generador XML
+            </Typography>
           </div>
-          <Typography variant="subtitle2">Enviar a:</Typography>
-          <TextField
-            id="name"
-            name="deliverToName"
-            label="Nombre"
-            onChange={handleChange}
-            value={values.deliverToName}
-          />
-          <TextField
-            id="deliverTo"
-            name="deliverTo"
-            label="Entregar a"
-            onChange={handleChange}
-            value={values.deliverTo}
-          />
-          <TextField
-            id="street"
-            name="deliverToStreet"
-            label="Dirección"
-            onChange={handleChange}
-            value={values.deliverToStreet}
-          />
-          <TextField
-            id="city"
-            name="deliverToCity"
-            label="Ciudad"
-            onChange={handleChange}
-            value={values.deliverToCity}
-          />
-          <TextField
-            id="state"
-            name="deliverToState"
-            label="Estado"
-            onChange={handleChange}
-            value={values.deliverToState}
-          />
-          <TextField
-            id="postalCode"
-            name="deliverToPostalCode"
-            label="Código Postal"
-            onChange={handleChange}
-            value={values.deliverToPostalCode}
-          />
-          <TextField
-            id="country"
-            name="deliverToCountry"
-            label="País"
-            onChange={handleChange}
-            value={values.deliverToCountry}
-          />
-          <TextField
-            id="email"
-            name="deliverToEmail"
-            label="Email"
-            onChange={handleChange}
-            value={values.deliverToEmail}
-          />
-          <div className="mt-3">
-            <Divider variant="middle" />
-          </div>
-          <Typography variant="subtitle2">Cobrar a:</Typography>
-          <TextField
-            id="nameBill"
-            name="nameBill"
-            label="Nombre"
-            onChange={handleChange}
-            value={values.nameBill}
-            disabled={true}
-          />
-          <TextField
-            id="deliverToBill"
-            name="deliverToBill"
-            label="Entregado por"
-            onChange={handleChange}
-            value={values.deliverToBill}
-            disabled={true}
-          />
-          <TextField
-            id="streetBill"
-            name="streetBill"
-            label="Dirección"
-            onChange={handleChange}
-            value={values.streetBill}
-            disabled={true}
-          />
-          <TextField
-            id="cityBill"
-            name="cityBill"
-            label="Ciudad"
-            onChange={handleChange}
-            value={values.cityBill}
-            disabled={true}
-          />
-          <TextField
-            id="stateBill"
-            name="stateBill"
-            label="Estado"
-            onChange={handleChange}
-            value={values.stateBill}
-            disabled={true}
-          />
-          <TextField
-            id="postalCodeBill"
-            name="postalCodeBill"
-            label="Código Postal"
-            onChange={handleChange}
-            value={values.postalCodeBill}
-            disabled={true}
-          />
-          <TextField
-            id="countryBill"
-            name="countryBill"
-            label="País"
-            onChange={handleChange}
-            value={values.countryBill}
-            disabled={true}
-          />
-          <div className="mt-3">
-            <Divider variant="middle" />
-          </div>
-          <Typography variant="subtitle2">Carrier:</Typography>
-          <TextField
-            id="carrierCode"
-            name="carrierCode"
-            label="Código de carrier"
-            onChange={handleChange}
-            value={values.carrierCode}
-            disabled={true}
-          />
-          <TextField
-            id="carrierName"
-            name="carrierName"
-            label="Nombre de carrier"
-            onChange={handleChange}
-            value={values.carrierName}
-            disabled={true}
-          />
-          <TextField
-            id="carrierId"
-            name="carrierId"
-            label="Id carrier"
-            onChange={handleChange}
-            value={values.carrierId}
-            disabled={true}
-          />
-          <TextField
-            id="carrierPhone"
-            name="carrierPhone"
-            label="Teléfono carrier"
-            onChange={handleChange}
-            value={values.carrierPhone}
-            disabled={true}
-          />
-          <TextField
-            id="carrierContactName"
-            name="carrierContactName"
-            label="Nombre de contacto"
-            onChange={handleChange}
-            value={values.carrierContactName}
-            disabled={true}
-          />
-          <TextField
-            id="carrierContactEmail"
-            name="carrierContactEmail"
-            label="Email de contacto"
-            onChange={handleChange}
-            value={values.carrierContactEmail}
-            disabled={true}
-          />
-          <div className="mt-3">
-            <Divider variant="middle" />
-          </div>
-          <Typography variant="subtitle2">Productos:</Typography>
-          <Button variant="contained" color="primary" onClick={event => handleAddProduct(event)}>
-            Agregar Producto
-          </Button>
-          {mapInputs(products)}
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            onClick={event => handleClick(event)}
-          >
-            Generar XML
-          </Button>
-        </form>
-      </Card>
-    </Grid>
+          <form className="mt-3">
+            <Typography variant="subtitle2">Datos:</Typography>
+            <TextField id="name" label="Nombre" name="name" onChange={handleChange} />
+            <TextField
+              id="email"
+              label="Email"
+              name="email"
+              onChange={handleChange}
+              disabled={true}
+            />
+            <TextField
+              id="phone"
+              label="Teléfono"
+              name="phone"
+              onChange={handleChange}
+              disabled={true}
+            />
+            <div className="mt-3">
+              <Divider variant="middle" />
+            </div>
+            <Typography variant="subtitle2">Enviar a:</Typography>
+            <TextField
+              id="name"
+              name="deliverToName"
+              label="Nombre"
+              onChange={handleChange}
+              value={values.deliverToName}
+            />
+            <TextField
+              id="deliverTo"
+              name="deliverTo"
+              label="Entregar a"
+              onChange={handleChange}
+              value={values.deliverTo}
+            />
+            <TextField
+              id="street"
+              name="deliverToStreet"
+              label="Dirección"
+              onChange={handleChange}
+              value={values.deliverToStreet}
+            />
+            <TextField
+              id="city"
+              name="deliverToCity"
+              label="Ciudad"
+              onChange={handleChange}
+              value={values.deliverToCity}
+            />
+            <TextField
+              id="state"
+              name="deliverToState"
+              label="Estado"
+              onChange={handleChange}
+              value={values.deliverToState}
+            />
+            <TextField
+              id="postalCode"
+              name="deliverToPostalCode"
+              label="Código Postal"
+              onChange={handleChange}
+              value={values.deliverToPostalCode}
+            />
+            <TextField
+              id="country"
+              name="deliverToCountry"
+              label="País"
+              onChange={handleChange}
+              value={values.deliverToCountry}
+            />
+            <TextField
+              id="email"
+              name="deliverToEmail"
+              label="Email"
+              onChange={handleChange}
+              value={values.deliverToEmail}
+            />
+            <div className="mt-3">
+              <Divider variant="middle" />
+            </div>
+            <Typography variant="subtitle2">Cobrar a:</Typography>
+            <TextField
+              id="nameBill"
+              name="nameBill"
+              label="Nombre"
+              onChange={handleChange}
+              value={values.nameBill}
+              disabled={true}
+            />
+            <TextField
+              id="deliverToBill"
+              name="deliverToBill"
+              label="Entregado por"
+              onChange={handleChange}
+              value={values.deliverToBill}
+              disabled={true}
+            />
+            <TextField
+              id="streetBill"
+              name="streetBill"
+              label="Dirección"
+              onChange={handleChange}
+              value={values.streetBill}
+              disabled={true}
+            />
+            <TextField
+              id="cityBill"
+              name="cityBill"
+              label="Ciudad"
+              onChange={handleChange}
+              value={values.cityBill}
+              disabled={true}
+            />
+            <TextField
+              id="stateBill"
+              name="stateBill"
+              label="Estado"
+              onChange={handleChange}
+              value={values.stateBill}
+              disabled={true}
+            />
+            <TextField
+              id="postalCodeBill"
+              name="postalCodeBill"
+              label="Código Postal"
+              onChange={handleChange}
+              value={values.postalCodeBill}
+              disabled={true}
+            />
+            <TextField
+              id="countryBill"
+              name="countryBill"
+              label="País"
+              onChange={handleChange}
+              value={values.countryBill}
+              disabled={true}
+            />
+            <div className="mt-3">
+              <Divider variant="middle" />
+            </div>
+            <Typography variant="subtitle2">Carrier:</Typography>
+            <TextField
+              id="carrierCode"
+              name="carrierCode"
+              label="Código de carrier"
+              onChange={handleChange}
+              value={values.carrierCode}
+              disabled={true}
+            />
+            <TextField
+              id="carrierName"
+              name="carrierName"
+              label="Nombre de carrier"
+              onChange={handleChange}
+              value={values.carrierName}
+              disabled={true}
+            />
+            <TextField
+              id="carrierId"
+              name="carrierId"
+              label="Id carrier"
+              onChange={handleChange}
+              value={values.carrierId}
+              disabled={true}
+            />
+            <TextField
+              id="carrierPhone"
+              name="carrierPhone"
+              label="Teléfono carrier"
+              onChange={handleChange}
+              value={values.carrierPhone}
+              disabled={true}
+            />
+            <TextField
+              id="carrierContactName"
+              name="carrierContactName"
+              label="Nombre de contacto"
+              onChange={handleChange}
+              value={values.carrierContactName}
+              disabled={true}
+            />
+            <TextField
+              id="carrierContactEmail"
+              name="carrierContactEmail"
+              label="Email de contacto"
+              onChange={handleChange}
+              value={values.carrierContactEmail}
+              disabled={true}
+            />
+            <div className="mt-3">
+              <Divider variant="middle" />
+            </div>
+            <Typography variant="subtitle2">Productos:</Typography>
+            <Button variant="contained" color="primary" onClick={event => handleAddProduct(event)}>
+              Agregar Producto
+            </Button>
+            {mapInputs(products)}
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={loading}
+              onClick={event => handleClick(event)}
+            >
+              {loading ? 'Subiendo archivo' : ' Generar XML'}
+            </Button>
+          </form>
+        </Card>
+      </Grid>
+      <Notification
+        open={snackbar.status}
+        handleClose={handleCloseSnackbar}
+        message={snackbar.message}
+        type={snackbar.type}
+      />
+    </>
   )
 }
-
 export default Home

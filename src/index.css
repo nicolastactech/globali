@@ -17,3 +17,7 @@ code {
 .mt-3 {
   margin-top: 30px;
 }
+
+.mb-card {
+  padding-bottom: 300px !important;
+}

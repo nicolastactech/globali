@@ -4,16 +4,20 @@
   "private": true,
   "dependencies": {
     "@material-ui/core": "^4.5.0",
+    "@material-ui/icons": "^4.5.1",
+    "axios": "^0.19.0",
     "react": "^16.10.2",
     "react-dom": "^16.10.2",
     "react-scripts": "3.2.0",
+    "react-select": "^3.0.8",
     "react-xml": "^0.2.0"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy": "az storage blob upload-batch -s ./build -d $web --account-name globalxml"
   },
   "eslintConfig": {
     "extends": "react-app"

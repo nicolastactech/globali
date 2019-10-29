@@ -1,4 +1,4 @@
-import React, {useState} from 'react'
+import React, {useState, useEffect} from 'react'
 import Select from 'react-select'
 import {Grid, Divider, Typography, Button} from '@material-ui/core'
 
@@ -6,12 +6,12 @@ import productsData from '../data/products.json'
 import {Card, TextField, Notification, LinearProgress} from '../components'
 
 function Home() {
-  const initialData = [{sku: '', description: '', unitOfMeasure: ''}]
+  const initialData = [{sku: '', description: '', unitOfMeasure: '', quantity: ''}]
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState(initialData)
   const [snackbar, setSnackbar] = useState({status: false})
-  const [values, setValues] = useState({
-    inputSku: '',
+
+  const initialValues = {
     name: '',
     email: '',
     phone: '',
@@ -36,7 +36,8 @@ function Home() {
     carrierPhone: '',
     carrierContactName: 'Esteban Miranda',
     carrierContactEmail: 'esmiranda@falabella.cl'
-  })
+  }
+  const [values, setValues] = useState(initialValues)
 
   const handleClick = async event => {
     event.preventDefault()
@@ -52,12 +53,14 @@ function Home() {
       }, [])
     }
 
-    await fetch('https://fn-sodimac-uploadsftp.azurewebsites.net/api/ParseHandler', {
-      method: 'POST',
-      body: JSON.stringify(outputData)
-    })
+    // await fetch('https://fn-sodimac-uploadsftp.azurewebsites.net/api/ParseHandler', {
+    //   method: 'POST',
+    //   body: JSON.stringify(outputData)
+    // })
     setLoading(false)
     setSnackbar({status: true, message: 'Archivo cargado', type: 'success'})
+    setValues(initialValues)
+    setProducts([{sku: '', description: '', unitOfMeasure: '', quantity: ''}])
   }
 
   const handleChange = event => {
@@ -95,6 +98,19 @@ function Home() {
     })
   }
 
+  useEffect(() => {
+    if (products.length === 0) {
+      setProducts(initialData)
+    }
+  }, [products])
+
+  const handleRemoveProduct = (event, index) => {
+    event.preventDefault()
+    const productSelected = products[index]
+    const filteredProducts = products.filter(product => product !== productSelected)
+    setProducts(filteredProducts)
+  }
+
   const handleCloseSnackbar = () => {
     setSnackbar({...snackbar, status: false})
   }
@@ -103,23 +119,38 @@ function Home() {
     return products.map((data, index) => {
       return (
         <Grid key={index} container spacing={3}>
-          <Grid item md={6}>
+          <Grid item md={5}>
             <div className="mt-3">
               <Select
+                id="sku"
                 options={productsData}
                 onChange={product => handleChangeProduct(product, index)}
-                name={values.inputSku}
+                name="sku"
+                isClearable
               />
             </div>
           </Grid>
-          <Grid item md={6}>
+          <Grid item md={4}>
             <TextField
               id="quantity"
               name="quantity"
               className="input-width"
               label="Cantidad"
+              value={data.quantity}
               onChange={e => handleChangeQuantity(e, index)}
             />
+          </Grid>
+          <Grid item md={3}>
+            <div className="mt-3">
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                onClick={event => handleRemoveProduct(event, index)}
+              >
+                Quitar
+              </Button>
+            </div>
           </Grid>
         </Grid>
       )
@@ -328,20 +359,27 @@ function Home() {
             <div className="mt-3">
               <Divider variant="middle" />
             </div>
-            <Typography variant="subtitle2">Productos:</Typography>
-            <Button variant="contained" color="primary" onClick={event => handleAddProduct(event)}>
-              Agregar Producto
-            </Button>
+            <div className="mt-3">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={event => handleAddProduct(event)}
+              >
+                Agregar Producto
+              </Button>
+            </div>
             {mapInputs(products)}
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={loading}
-              onClick={event => handleClick(event)}
-            >
-              {loading ? 'Subiendo archivo' : ' Generar XML'}
-            </Button>
+            <div className="mt-3">
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                disabled={loading}
+                onClick={event => handleClick(event)}
+              >
+                {loading ? 'Subiendo archivo' : ' Generar XML'}
+              </Button>
+            </div>
           </form>
         </Card>
       </Grid>

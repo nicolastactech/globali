@@ -74,8 +74,7 @@ function MySnackbarContentWrapper(props) {
 MySnackbarContentWrapper.propTypes = {
   className: PropTypes.string,
   message: PropTypes.string,
-  onClose: PropTypes.func,
-  variant: PropTypes.oneOf(['error', 'info', 'success', 'warning']).isRequired
+  onClose: PropTypes.func
 }
 
 function Notification({open, handleClose, message, type}) {

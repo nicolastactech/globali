@@ -1,22 +1,11 @@
 import React, {useState} from 'react'
-import {makeStyles} from '@material-ui/core/styles'
-import {Grid, Divider, Typography, Button} from '@material-ui/core'
 import Select from 'react-select'
+import {Grid, Divider, Typography, Button} from '@material-ui/core'
 
 import productsData from '../data/products.json'
 import {Card, TextField, Notification, LinearProgress} from '../components'
 
-const useStyles = makeStyles({
-  root: {
-    paddingBottom: 300,
-    '&:last-child': {
-      paddingBottom: 300
-    }
-  }
-})
-
 function Home() {
-  const classes = useStyles()
   const initialData = [{sku: '', description: '', unitOfMeasure: ''}]
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState(initialData)
@@ -137,12 +126,11 @@ function Home() {
     })
   }
 
-  console.log(loading)
   return (
     <>
       {loading && <LinearProgress />}
       <Grid container item xs={12} sm>
-        <Card className={classes.root}>
+        <Card>
           <div className="text-center">
             <Typography gutterBottom variant="h4">
               Generador XML

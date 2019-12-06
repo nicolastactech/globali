@@ -1,11 +1,11 @@
 import React from 'react'
 
-import {Home} from './views'
+import {UserForm} from './views'
 
 function App() {
   return (
     <div className="App">
-      <Home />
+      <UserForm />
     </div>
   )
 }

@@ -1,15 +1,17 @@
-import React, {useState, useEffect} from 'react'
+import React, { useState, useEffect } from 'react'
 import Select from 'react-select'
-import {Grid, Divider, Typography, Button} from '@material-ui/core'
+import { Grid, Divider, Typography, Button } from '@material-ui/core'
 
 import productsData from '../data/products.json'
-import {Card, TextField, Notification, LinearProgress} from '../components'
+import { Card, TextField, Notification, LinearProgress } from '../components'
 
-function Home() {
-  const initialData = [{sku: '', description: '', unitOfMeasure: '', quantity: ''}]
+function UserForm() {
+  const initialData = [
+    { sku: '', description: '', unitOfMeasure: '', quantity: '' }
+  ]
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState(initialData)
-  const [snackbar, setSnackbar] = useState({status: false})
+  const [snackbar, setSnackbar] = useState({ status: false })
 
   const initialValues = {
     name: '',
@@ -25,7 +27,7 @@ function Home() {
     deliverToEmail: '',
     nameBill: 'Sodimac S.A',
     deliverToBill: 'PAGOS SODIMAC pagos@sodimac.cl',
-    streetBill: 'Pdte Eduardo Frei Montalva 3092',
+    streetBill: '',
     cityBill: 'Santiago',
     stateBill: 'CL',
     postalCodeBill: '8640195',
@@ -53,20 +55,20 @@ function Home() {
       }, [])
     }
 
-    // await fetch('https://fn-sodimac-uploadsftp.azurewebsites.net/api/ParseHandler', {
-    //   method: 'POST',
-    //   body: JSON.stringify(outputData)
-    // })
+    await fetch(process.env.REACT_APP_FUNCTION_APP, {
+      method: 'POST',
+      body: JSON.stringify(outputData)
+    })
     setLoading(false)
-    setSnackbar({status: true, message: 'Archivo cargado', type: 'success'})
+    setSnackbar({ status: true, message: 'Archivo cargado', type: 'success' })
     setValues(initialValues)
-    setProducts([{sku: '', description: '', unitOfMeasure: '', quantity: ''}])
+    setProducts([{ sku: '', description: '', unitOfMeasure: '', quantity: '' }])
   }
 
   const handleChange = event => {
     const name = event.target.name
     const value = event.target.value
-    setValues({...values, [name]: value})
+    setValues({ ...values, [name]: value })
   }
 
   const handleAddProduct = event => {
@@ -100,25 +102,39 @@ function Home() {
 
   useEffect(() => {
     if (products.length === 0) {
-      setProducts(initialData)
+      setProducts([
+        { sku: '', description: '', unitOfMeasure: '', quantity: '' }
+      ])
     }
   }, [products])
 
   const handleRemoveProduct = (event, index) => {
     event.preventDefault()
     const productSelected = products[index]
-    const filteredProducts = products.filter(product => product !== productSelected)
-    setProducts(filteredProducts)
+    setProducts(products.filter(product => product !== productSelected))
   }
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({...snackbar, status: false})
+  const handleFetchZipcode = async () => {
+    const response = await fetch(process.env.REACT_APP_FUNCTION_APP, {
+      method: 'POST',
+      body: JSON.stringify({
+        address: values.deliverToStreet
+      }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const { zipcode } = await response.json()
+    setValues({ ...values, deliverToPostalCode: zipcode })
   }
+
+  const handleCloseSnackbar = () => setSnackbar({ ...snackbar, status: false })
 
   const mapInputs = () => {
     return products.map((data, index) => {
       return (
-        <Grid key={index} container spacing={3}>
+        <Grid key={data.sku} container spacing={3}>
           <Grid item md={5}>
             <div className="mt-3">
               <Select
@@ -169,7 +185,12 @@ function Home() {
           </div>
           <form className="mt-3">
             <Typography variant="subtitle2">Datos:</Typography>
-            <TextField id="name" label="Nombre" name="name" onChange={handleChange} />
+            <TextField
+              id="name"
+              label="Nombre"
+              name="name"
+              onChange={handleChange}
+            />
             <TextField
               id="email"
               label="Email"
@@ -209,6 +230,13 @@ function Home() {
               onChange={handleChange}
               value={values.deliverToStreet}
             />
+            <Button
+              onClick={handleFetchZipcode}
+              variant="contained"
+              color="primary"
+            >
+              Obtener código postal
+            </Button>
             <TextField
               id="city"
               name="deliverToCity"
@@ -229,6 +257,7 @@ function Home() {
               label="Código Postal"
               onChange={handleChange}
               value={values.deliverToPostalCode}
+              disabled={true}
             />
             <TextField
               id="country"
@@ -270,8 +299,8 @@ function Home() {
               label="Dirección"
               onChange={handleChange}
               value={values.streetBill}
-              disabled={true}
             />
+            <Button onSubmit={handleFetchZipcode}>Buscar</Button>
             <TextField
               id="cityBill"
               name="cityBill"
@@ -392,4 +421,5 @@ function Home() {
     </>
   )
 }
-export default Home
+
+export default UserForm

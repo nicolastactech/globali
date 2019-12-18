@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import Select from 'react-select'
-import { Grid, Divider, Typography, Button } from '@material-ui/core'
+import {
+  Grid,
+  Divider,
+  Typography,
+  Button,
+  CircularProgress
+} from '@material-ui/core'
 
 import productsData from '../data/products.json'
 import { Card, TextField, Notification, LinearProgress } from '../components'
@@ -10,6 +16,7 @@ function UserForm() {
     { sku: '', description: '', unitOfMeasure: '', quantity: '' }
   ]
   const [loading, setLoading] = useState(false)
+  const [loadingZipCode, setLoadingZipCode] = useState(false)
   const [products, setProducts] = useState(initialData)
   const [snackbar, setSnackbar] = useState({ status: false })
 
@@ -20,6 +27,7 @@ function UserForm() {
     deliverToName: '',
     deliverTo: '',
     deliverToStreet: '',
+    orderId: '',
     deliverToCity: '',
     deliverToState: '',
     deliverToPostalCode: '',
@@ -49,13 +57,13 @@ function UserForm() {
       products: products.reduce((acc, next) => {
         acc.push({
           ...next,
-          totalAmount: (next.price * parseInt(next.quantity)).toFixed(1) //here Math.round()
+          totalAmount: (next.price * parseInt(next.quantity)).toFixed(2) //here Math.round()
         })
         return acc
       }, [])
     }
 
-    await fetch(process.env.REACT_APP_FUNCTION_APP, {
+    await fetch(`${process.env.REACT_APP_FUNCTION_APP}/ParseHandler`, {
       method: 'POST',
       body: JSON.stringify(outputData)
     })
@@ -114,19 +122,44 @@ function UserForm() {
     setProducts(products.filter(product => product !== productSelected))
   }
 
-  const handleFetchZipcode = async () => {
-    const response = await fetch(process.env.REACT_APP_FUNCTION_APP, {
-      method: 'POST',
-      body: JSON.stringify({
-        address: values.deliverToStreet
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+  const hasData = text => {
+    if (text.length > 0) {
+      return true
+    } else {
+      return false
+    }
+  }
 
-    const { zipcode } = await response.json()
-    setValues({ ...values, deliverToPostalCode: zipcode })
+  const handleFetchZipcode = async () => {
+    setLoadingZipCode(true)
+    const { deliverToStreet, deliverToCountry } = values
+
+    if (hasData(deliverToStreet) && hasData(deliverToCountry)) {
+      const response = await fetch(
+        `${process.env.REACT_APP_FUNCTION_APP}/zipCode`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            address: deliverToStreet,
+            country: deliverToCountry
+          }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+
+      const { zipcode } = await response.json()
+      setValues({ ...values, deliverToPostalCode: zipcode })
+      setLoadingZipCode(false)
+    } else {
+      setSnackbar({
+        status: true,
+        message: 'Necesitas completar los campos',
+        type: 'warning'
+      })
+      setLoadingZipCode(false)
+    }
   }
 
   const handleCloseSnackbar = () => setSnackbar({ ...snackbar, status: false })
@@ -208,6 +241,16 @@ function UserForm() {
             <div className="mt-3">
               <Divider variant="middle" />
             </div>
+            <Typography variant="subtitle2">Datos de orden:</Typography>
+            <TextField
+              id="orderId"
+              label="Orden Id de Sodimac"
+              name="orderId"
+              onChange={handleChange}
+            />
+            <div className="mt-3">
+              <Divider variant="middle" />
+            </div>
             <Typography variant="subtitle2">Enviar a:</Typography>
             <TextField
               id="name"
@@ -230,13 +273,6 @@ function UserForm() {
               onChange={handleChange}
               value={values.deliverToStreet}
             />
-            <Button
-              onClick={handleFetchZipcode}
-              variant="contained"
-              color="primary"
-            >
-              Obtener código postal
-            </Button>
             <TextField
               id="city"
               name="deliverToCity"
@@ -273,6 +309,18 @@ function UserForm() {
               onChange={handleChange}
               value={values.deliverToEmail}
             />
+            <Button
+              onClick={handleFetchZipcode}
+              variant="contained"
+              disabled={loadingZipCode}
+              color="primary"
+            >
+              {loadingZipCode ? (
+                <CircularProgress size={20} />
+              ) : (
+                'Obtener código postal'
+              )}
+            </Button>
             <div className="mt-3">
               <Divider variant="middle" />
             </div>
@@ -299,8 +347,8 @@ function UserForm() {
               label="Dirección"
               onChange={handleChange}
               value={values.streetBill}
+              disabled={true}
             />
-            <Button onSubmit={handleFetchZipcode}>Buscar</Button>
             <TextField
               id="cityBill"
               name="cityBill"
@@ -392,7 +440,7 @@ function UserForm() {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={event => handleAddProduct(event)}
+                onClick={handleAddProduct}
               >
                 Agregar Producto
               </Button>
@@ -404,7 +452,7 @@ function UserForm() {
                 variant="contained"
                 color="primary"
                 disabled={loading}
-                onClick={event => handleClick(event)}
+                onClick={handleClick}
               >
                 {loading ? 'Subiendo archivo' : ' Generar XML'}
               </Button>

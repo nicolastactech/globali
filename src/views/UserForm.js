@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import Select from 'react-select'
 import {
   Grid,
   Divider,
   Typography,
   Button,
-  CircularProgress
+  CircularProgress,
+  Select,
+  MenuItem
 } from '@material-ui/core'
 
 import productsData from '../data/products.json'
@@ -13,7 +14,16 @@ import { Card, TextField, Notification, LinearProgress } from '../components'
 
 function UserForm() {
   const initialData = [
-    { sku: '', description: '', unitOfMeasure: '', quantity: '' }
+    {
+      sku: '',
+      value: '',
+      price: '',
+      brand: '',
+      label: '',
+      quantity: '',
+      description: '',
+      unitOfMeasure: ''
+    }
   ]
   const [loading, setLoading] = useState(false)
   const [loadingZipCode, setLoadingZipCode] = useState(false)
@@ -63,7 +73,7 @@ function UserForm() {
       }, [])
     }
 
-    await fetch(`${process.env.REACT_APP_FUNCTION_APP}/ParseHandler`, {
+    await fetch(`${process.env.REACT_APP_FUNCTION_APP}/xmlBuilder`, {
       method: 'POST',
       body: JSON.stringify(outputData)
     })
@@ -84,15 +94,14 @@ function UserForm() {
     setProducts(prevState => [...prevState, ...initialData])
   }
 
-  const handleChangeProduct = (product, index) => {
-    setProducts(prevState => {
-      const newState = [...prevState]
-      newState[index] = {
-        ...newState[index],
-        ...product
-      }
-      return newState
-    })
+  const handleChangeProduct = (event, index) => {
+    const sku = event.target.value
+    const findSku = productsData.find(product => product.sku === sku)
+
+    setProducts([...products, findSku])
+
+    console.log('Seleccionado', products[index])
+    console.log('Numero', index)
   }
 
   const handleChangeQuantity = (event, index) => {
@@ -111,7 +120,12 @@ function UserForm() {
   useEffect(() => {
     if (products.length === 0) {
       setProducts([
-        { sku: '', description: '', unitOfMeasure: '', quantity: '' }
+        {
+          sku: '',
+          description: '',
+          unitOfMeasure: '',
+          quantity: ''
+        }
       ])
     }
   }, [products])
@@ -167,16 +181,21 @@ function UserForm() {
   const mapInputs = () => {
     return products.map((data, index) => {
       return (
-        <Grid key={data.sku} container spacing={3}>
+        <Grid key={data.sku + 1} container spacing={3}>
           <Grid item md={5}>
             <div className="mt-3">
               <Select
-                id="sku"
-                options={productsData}
-                onChange={product => handleChangeProduct(product, index)}
-                name="sku"
-                isClearable
-              />
+                value={data.sku}
+                onChange={event => handleChangeProduct(event, index)}
+              >
+                {productsData.map(item => {
+                  return (
+                    <MenuItem key={item.sku} value={item.sku}>
+                      {item.sku}
+                    </MenuItem>
+                  )
+                })}
+              </Select>
             </div>
           </Grid>
           <Grid item md={4}>
